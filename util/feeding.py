@@ -7,6 +7,7 @@ from functools import partial
 
 import numpy as np
 import pandas
+import random
 import tensorflow as tf
 
 from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
@@ -22,6 +23,7 @@ def read_csvs(csv_files):
         #FIXME: not cross-platform
         csv_dir = os.path.dirname(os.path.abspath(csv))
         file['wav_filename'] = file['wav_filename'].str.replace(r'(^[^/])', lambda m: os.path.join(csv_dir, m.group(1))) # pylint: disable=cell-var-from-loop
+        file['wav_filesize_original'] = file['wav_filesize']
         if source_data is None:
             source_data = file
         else:
@@ -71,6 +73,8 @@ def create_dataset(csvs, batch_size, cache_path=''):
     df['transcript'] = df['transcript'].apply(partial(text_to_char_array, alphabet=Config.alphabet))
 
     def generate_values():
+        df['wav_filesize'] = df['wav_filesize_original'].apply(lambda x: x+int(x*random.uniform(-0.2, 0.2)))
+        df.sort_values(by='wav_filesize', inplace=True)
         for _, row in df.iterrows():
             yield row.wav_filename, to_sparse_tuple(row.transcript)
 
